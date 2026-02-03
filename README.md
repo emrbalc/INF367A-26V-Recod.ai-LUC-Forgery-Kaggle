@@ -24,3 +24,13 @@ https://www.kaggle.com/competitions/recodai-luc-scientific-image-forgery-detecti
 ## TIMELINE
 
 By 13.02 - try to have baseline pipeline up and running.
+
+## Distribution
+
+Three parts:
+
+1. Fixing metric bugs, implementing/changing model architectures - Emre
+
+2. Sliding window prediction w/decoder - Max
+
+3. Image operations on pixel map - Einar
