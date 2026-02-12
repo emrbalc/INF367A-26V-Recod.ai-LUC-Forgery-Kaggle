@@ -209,3 +209,5 @@ __marimo__/
 # Data
 /data/*
 !/data/README.md
+testing.ipynb
+.vscode/settings.json
