@@ -32,10 +32,10 @@ class PixelMapUtil:
         return self._gaussian_blur(img)
     
     def opening(self, img: np.typing.ArrayLike | np.typing.NDArray) -> np.typing.NDArray:
-        return ndimage.binary_opening(img)
+        return ndimage.binary_opening(img, structure=np.ones((3,3)))
 
     def closing(self, img: np.typing.ArrayLike | np.typing.NDArray) -> np.typing.NDArray:
-        return ndimage.binary_closing(img)
+        return ndimage.binary_closing(img, structure=np.ones((7,7)))
 
     def fill_components(self, img: np.typing.ArrayLike | np.typing.NDArray) -> np.typing.NDArray:
         return ndimage.binary_fill_holes(img) # type: ignore
