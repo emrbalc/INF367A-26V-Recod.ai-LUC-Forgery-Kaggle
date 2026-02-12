@@ -1,14 +1,11 @@
 [project]
-name = "inf367a-recodai-luc-forgery"
+name = "inf367a-26v-recod-ai-luc-forgery-kaggle"
 version = "0.1.0"
-description = "Course project: scientific image forgery detection"
-requires-python = ">=3.10"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
 dependencies = [
-  "numpy",
-  "pandas",
-  "scipy",
-  "numba",
-  "pillow",
-  "tqdm",
+    "numba>=0.63.1",
+    "pandas>=2.3.3",
+    "scipy>=1.17.0",
 ]
-
