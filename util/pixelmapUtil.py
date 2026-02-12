@@ -54,11 +54,13 @@ class PixelMapUtil:
         edges = self.fill_components(edges)
         img += edges - 1 
 
-        print(img)
+        img = 1-img
         
         img = self.closing(img)
 
         img = self.opening(img)
+
+        img = 1-img
 
         
         
