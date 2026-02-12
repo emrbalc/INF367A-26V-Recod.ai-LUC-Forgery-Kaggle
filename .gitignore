@@ -209,5 +209,8 @@ __marimo__/
 # Data
 /data/*
 !/data/README.md
-testing.ipynb
-.vscode/settings.json
+# Local env/cache
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
