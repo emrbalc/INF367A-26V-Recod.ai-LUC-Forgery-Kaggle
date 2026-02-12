@@ -1,0 +1,14 @@
+[project]
+name = "inf367a-recodai-luc-forgery"
+version = "0.1.0"
+description = "Course project: scientific image forgery detection"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy",
+  "pandas",
+  "scipy",
+  "numba",
+  "pillow",
+  "tqdm",
+]
+
