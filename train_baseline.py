@@ -10,6 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 
 from dataset_utils import load_image, load_union_mask
 from recodai_f1 import calculate_f1_score
+from sliding_window_impl import sliding_window
 
 
 class DoubleConv(nn.Module):
@@ -169,14 +170,18 @@ def main():
         f1s = []
         with torch.no_grad():
             for imgs, masks in tqdm(val_loader, desc=f"epoch {epoch+1} val"):
-                imgs, masks = imgs.to(device), masks.to(device)
-                logits = model(imgs)
-                probs = torch.sigmoid(logits).cpu().numpy()[0, 0]
-                gt = masks.cpu().numpy()[0, 0]
+                for i in range(imgs.shape[0]): 
+                    img = imgs[i]   # (1,H,W)
+                    mask = masks[i]
 
-                pred_bin = (probs >= 0.5).astype(np.uint8)
-                gt_bin = (gt >= 0.5).astype(np.uint8)
-                f1s.append(calculate_f1_score(pred_bin, gt_bin))
+                    logits = sliding_window(img, model)         
+                    probs = torch.sigmoid(logits).cpu().numpy()  
+                    gt = mask.cpu().numpy()[0]                 
+
+                    pred_bin = (probs >= 0.5).astype(np.uint8)
+                    gt_bin = (gt >= 0.5).astype(np.uint8)
+
+                    f1s.append(calculate_f1_score(pred_bin, gt_bin))
 
         print(f"Epoch {epoch+1}: avg_loss={avg_loss:.4f}  val_f1={float(np.mean(f1s)):.4f}")
 
