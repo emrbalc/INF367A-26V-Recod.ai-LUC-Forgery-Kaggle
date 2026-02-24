@@ -17,6 +17,7 @@ def validate_one_epoch(
     harden_temperature: float,
     hard_clip_low: float,
     hard_clip_high: float,
+    min_component_area: int,
     epoch_idx: int,
 ) -> float:
     model.eval()
@@ -39,6 +40,7 @@ def validate_one_epoch(
                 harden_temperature=harden_temperature,
                 hard_clip_low=hard_clip_low,
                 hard_clip_high=hard_clip_high,
+                min_component_area=min_component_area,
             )
             gt = mask.cpu().numpy()[0]
 

@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import ndimage
 
 from util.pixelmapUtil import PixelMapUtil
 
@@ -25,6 +26,7 @@ def post_process_prediction(
     harden_temperature: float,
     hard_clip_low: float,
     hard_clip_high: float,
+    min_component_area: int = 0,
 ) -> np.ndarray:
     probs = harden_probabilities(
         probs,
@@ -32,4 +34,25 @@ def post_process_prediction(
         clip_low=hard_clip_low,
         clip_high=hard_clip_high,
     )
-    return pixel_util.post_process_mask_probs(probs, threshold=threshold)
+    mask = pixel_util.post_process_mask_probs(probs, threshold=threshold)
+    return filter_small_components(mask, min_component_area=min_component_area)
+
+
+def filter_small_components(mask: np.ndarray, min_component_area: int) -> np.ndarray:
+    if min_component_area <= 1:
+        return mask.astype(np.float32, copy=False)
+
+    mask_bool = mask.astype(bool)
+    labeled, num = ndimage.label(mask_bool)
+    if num == 0:
+        return mask.astype(np.float32, copy=False)
+
+    component_ids = np.arange(1, num + 1)
+    areas = ndimage.sum(mask_bool, labeled, index=component_ids)
+
+    keep = np.zeros_like(mask_bool, dtype=bool)
+    for comp_id, area in zip(component_ids, areas):
+        if area >= min_component_area:
+            keep |= labeled == comp_id
+
+    return keep.astype(np.float32)
