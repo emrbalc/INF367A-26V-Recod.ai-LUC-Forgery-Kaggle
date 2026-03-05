@@ -9,7 +9,7 @@ import torch
 @dataclass(frozen=True)
 class BaselineConfig:
     model_type: str = "segnext"
-    num_epochs: int = 1
+    num_epochs: int = 5
     batch_size: int = 4
     seed: int = 42
     target_size: int = 448 # Try to keep this divisible by 14. 256 works too, but is small. 
@@ -18,8 +18,8 @@ class BaselineConfig:
     hard_clip_low: float = 0.1
     hard_clip_high: float = 0.9
     min_component_area: int = 50
-    train_subset: int = 20
-    val_subset: int = 5
+    train_subset: int = 400
+    val_subset: int = 100
     lr: float = 1e-4
     grad_clip_max_norm: float = 1.0
     train_num_workers: int = 2
