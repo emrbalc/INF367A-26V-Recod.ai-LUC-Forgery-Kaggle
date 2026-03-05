@@ -8,7 +8,8 @@ import torch
 
 @dataclass(frozen=True)
 class BaselineConfig:
-    num_epochs: int = 10
+    model_type: str = "segnext"
+    num_epochs: int = 1
     batch_size: int = 4
     seed: int = 42
     target_size: int = 448 # Try to keep this divisible by 14. 256 works too, but is small. 
@@ -17,8 +18,8 @@ class BaselineConfig:
     hard_clip_low: float = 0.1
     hard_clip_high: float = 0.9
     min_component_area: int = 50
-    train_subset: int = 200
-    val_subset: int = 50
+    train_subset: int = 20
+    val_subset: int = 5
     lr: float = 1e-4
     grad_clip_max_norm: float = 1.0
     train_num_workers: int = 2
@@ -30,7 +31,7 @@ class BaselineConfig:
     dino_model_name: str = "dinov2_vitb14"
     dino_embed_dim: int = 768
     freeze_dino_encoder: bool = True
-    use_amp: bool = True
+    use_amp: bool = False
     sliding_window_size: int | None = 448
     sliding_stride: int | None = 224
     sliding_batch_size: int = 8

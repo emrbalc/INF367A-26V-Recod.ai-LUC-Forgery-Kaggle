@@ -13,6 +13,7 @@ from engine.validate_loop import validate_one_epoch
 from inference.sliding_window_dino import sliding_window_dino
 from models.dino_segmenter import DinoSegmenter
 from util.pixelmapUtil import PixelMapUtil
+from tqdm import tqdm
 
 
 def get_forged_case_ids():
@@ -31,11 +32,13 @@ def split_ids(ids, val_ratio=0.1, seed=42):
 def main():
     config = BaselineConfig()
     set_seed(config.seed)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     print(f"Using seed: {config.seed}")
 
     pixel_util = PixelMapUtil()
+
     all_ids = get_forged_case_ids()
     train_ids, val_ids = split_ids(all_ids, val_ratio=0.1, seed=config.seed)
 
@@ -63,6 +66,7 @@ def main():
         worker_init_fn=seed_worker,
         generator=train_loader_generator,
     )
+
     val_loader = DataLoader(
         ForgeryDataset(
             val_ids,
@@ -80,27 +84,49 @@ def main():
         generator=val_loader_generator,
     )
 
-    model = DinoSegmenter.from_official(
-        model_name=config.dino_model_name,
-        embed_dim=config.dino_embed_dim,
-        freeze_encoder=config.freeze_dino_encoder,
-    ).to(device)
+    # -----------------------
+    # Model selection
+    # -----------------------
+    if config.model_type == "segnext":
+        from models.segnext_segmenter import SegNeXtSegmenter
+        model = SegNeXtSegmenter(out_ch=1).to(device)
+    elif config.model_type == "dino":
+        model = DinoSegmenter.from_official(
+            model_name=config.dino_model_name,
+            embed_dim=config.dino_embed_dim,
+            freeze_encoder=config.freeze_dino_encoder,
+        ).to(device)
+    else:
+        raise ValueError(f"Unknown model_type: {config.model_type}")
+
+    # -----------------------
+    # Optimizer / loss / AMP
+    # -----------------------
     optimizer = torch.optim.Adam(
         (p for p in model.parameters() if p.requires_grad),
         lr=config.lr,
     )
     loss_fn = nn.BCEWithLogitsLoss()
+
     use_amp = bool(config.use_amp and device.type == "cuda")
     scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
 
+    # -----------------------
+    # Sliding-window inference (DINO-only for now)
+    # -----------------------
     sw_patch = config.sliding_window_size or config.target_size
     sw_stride = config.sliding_stride or (sw_patch // 2)
-    sliding_window_fn = partial(
-        sliding_window_dino,
-        patch_size=sw_patch,
-        stride=sw_stride,
-        batch_size=config.sliding_batch_size,
-    )
+
+    if config.model_type == "dino":
+        sliding_window_fn = partial(
+            sliding_window_dino,
+            patch_size=sw_patch,
+            stride=sw_stride,
+            batch_size=config.sliding_batch_size,
+        )
+    else:
+        sliding_window_fn = None  # SegNeXt: use direct forward in validate loop (if supported)
+
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         mode="max",
@@ -126,6 +152,7 @@ def main():
             use_amp=use_amp,
             scaler=scaler,
         )
+
         val_f1 = validate_one_epoch(
             model=model,
             val_loader=val_loader,
@@ -139,7 +166,8 @@ def main():
             min_component_area=config.min_component_area,
             epoch_idx=epoch,
         )
-        print(f"Epoch {epoch+1}: avg_loss={avg_loss:.4f}  val_f1={val_f1:.4f}")
+
+        tqdm.write(f"Epoch {epoch + 1}: avg_loss={avg_loss:.4f}  val_f1={val_f1:.4f}")
 
         if val_f1 > best_f1:
             best_f1 = val_f1

@@ -28,11 +28,33 @@ def validate_one_epoch(
         masks = masks.to(device)
 
         for i in range(imgs.shape[0]):
-            img = imgs[i]
-            mask = masks[i]
+            img = imgs[i]   # (C,H,W)
+            mask = masks[i] # usually (1,H,W)
 
-            logits = sliding_window_fn(img, model, device)
-            probs = torch.sigmoid(logits).cpu().numpy()
+            # Get logits
+            if sliding_window_fn is None:
+                # direct forward: model expects (B,C,H,W)
+                logits = model(img.unsqueeze(0).to(device))  # (1,1,H,W) ideally
+            else:
+                # sliding window expects single image (C,H,W) and returns (1,H,W) or (H,W)
+                logits = sliding_window_fn(img, model, device)
+
+            # Convert logits to probs (numpy)
+            probs = torch.sigmoid(logits).detach().cpu().numpy()
+
+            # ---- FIX: ensure probs is 2D (H,W) for scipy morphology ----
+            # possible shapes here:
+            # - (1,1,H,W) from direct forward
+            # - (1,H,W) from sliding window
+            # - (H,W) already OK
+            if probs.ndim == 4:
+                # (B,1,H,W) -> take first item
+                probs = probs[0]
+            if probs.ndim == 3 and probs.shape[0] == 1:
+                # (1,H,W) -> (H,W)
+                probs = probs[0]
+            # -----------------------------------------------------------
+
             probs = post_process_prediction(
                 probs=probs,
                 pixel_util=pixel_util,
@@ -42,7 +64,8 @@ def validate_one_epoch(
                 hard_clip_high=hard_clip_high,
                 min_component_area=min_component_area,
             )
-            gt = mask.cpu().numpy()[0]
+
+            gt = mask.detach().cpu().numpy()[0]  # (H,W)
 
             pred_bin = (probs >= pred_threshold).astype(np.uint8)
             gt_bin = (gt >= 0.5).astype(np.uint8)
